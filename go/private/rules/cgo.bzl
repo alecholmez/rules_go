@@ -95,10 +95,8 @@ def cgo_configure(go, srcs, cdeps, cppopts, copts, cxxopts, clinkopts):
     # doesn't appear in the CompilationContext.
     _include_unique(cppopts, "-iquote", ".", seen_quote_includes)
     for d in cdeps:
-        print("This is a cdep", d)
         runfiles = runfiles.merge(d.data_runfiles)
         if CcInfo in d:
-            print("This is ccinfo", CcInfo)
             cc_transitive_headers = d[CcInfo].compilation_context.headers
             inputs_transitive.append(cc_transitive_headers)
 
@@ -108,6 +106,7 @@ def cgo_configure(go, srcs, cdeps, cppopts, copts, cxxopts, clinkopts):
             cc_defines = d[CcInfo].compilation_context.defines.to_list()
             cppopts.extend(["-D" + define for define in cc_defines])
             cc_includes = d[CcInfo].compilation_context.includes.to_list()
+            print("Here are our includes", cc_includes)
             for inc in cc_includes:
                 _include_unique(cppopts, "-I", inc, seen_includes)
             cc_quote_includes = d[CcInfo].compilation_context.quote_includes.to_list()
@@ -170,6 +169,7 @@ def cgo_configure(go, srcs, cdeps, cppopts, copts, cxxopts, clinkopts):
         else:
             fail("unknown library has neither cc nor objc providers: %s" % d.label)
 
+    _include_unique(cppopts, "-I", "bazel-out/k8-fastbuild/bin/external/envoy/source/exe/envoy_main_common_lib", seen_includes)
     print("Here are the opts of everything", cppopts)
     inputs = depset(direct = inputs_direct, transitive = inputs_transitive)
     deps = depset(direct = deps_direct)
