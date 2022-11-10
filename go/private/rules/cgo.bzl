@@ -189,7 +189,7 @@ def cgo_configure(go, srcs, cdeps, cppopts, copts, cxxopts, clinkopts):
         cxxopts = cxxopts,
         objcopts = objcopts,
         objcxxopts = objcxxopts,
-        clinkopts = clinkopts,
+        clinkopts = dedupe_opts(clinkopts),
     )
 
 # return a list of libraries to link and the user modifiable flags.
@@ -231,3 +231,7 @@ def _include_unique(opts, flag, include, seen):
         return
     seen[include] = True
     opts.extend([flag, include])
+
+def dedupe_opts(target):
+    dedupedCopts = [*set(target)]
+    return dedupedCopts
