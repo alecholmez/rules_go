@@ -184,9 +184,9 @@ def cgo_configure(go, srcs, cdeps, cppopts, copts, cxxopts, clinkopts):
         inputs = inputs,
         deps = deps,
         runfiles = runfiles,
-        cppopts = cppopts,
-        copts = copts,
-        cxxopts = cxxopts,
+        cppopts = dedupe_opts(cppopts),
+        copts = dedupe_opts(copts),
+        cxxopts = dedupe_opts(cxxopts),
         objcopts = objcopts,
         objcxxopts = objcxxopts,
         clinkopts = dedupe_opts(clinkopts),
@@ -233,5 +233,8 @@ def _include_unique(opts, flag, include, seen):
     opts.extend([flag, include])
 
 def dedupe_opts(target):
-    dedupedCopts = [*set(target)]
+    seen = {}
+    for t in target:
+        seen[t] = True
+    dedupedCopts = list(seen.keys())
     return dedupedCopts
