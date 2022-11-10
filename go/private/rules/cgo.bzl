@@ -106,7 +106,6 @@ def cgo_configure(go, srcs, cdeps, cppopts, copts, cxxopts, clinkopts):
             cc_defines = d[CcInfo].compilation_context.defines.to_list()
             cppopts.extend(["-D" + define for define in cc_defines])
             cc_includes = d[CcInfo].compilation_context.includes.to_list()
-            print("Here are our includes", cc_includes)
             for inc in cc_includes:
                 _include_unique(cppopts, "-I", inc, seen_includes)
             cc_quote_includes = d[CcInfo].compilation_context.quote_includes.to_list()
@@ -170,7 +169,6 @@ def cgo_configure(go, srcs, cdeps, cppopts, copts, cxxopts, clinkopts):
             fail("unknown library has neither cc nor objc providers: %s" % d.label)
 
     _include_unique(cppopts, "-I", "bazel-out/k8-fastbuild/bin/external/envoy/source/exe/envoy_main_common_lib", seen_includes)
-    print("Here are the opts of everything", cppopts)
     inputs = depset(direct = inputs_direct, transitive = inputs_transitive)
     deps = depset(direct = deps_direct)
 
@@ -234,7 +232,7 @@ def _include_unique(opts, flag, include, seen):
 
 def dedupe_opts(target):
     seen = {}
-    for t in target:
-        seen[t] = True
-    dedupedCopts = list(seen.keys())
+    for i, t in enumerate(target):
+        seen[t] = i
+    dedupedCopts = list(sorted(seen.keys(), key=lambda x: seen[x]))
     return dedupedCopts
