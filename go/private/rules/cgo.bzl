@@ -168,7 +168,6 @@ def cgo_configure(go, srcs, cdeps, cppopts, copts, cxxopts, clinkopts):
         else:
             fail("unknown library has neither cc nor objc providers: %s" % d.label)
 
-    _include_unique(cppopts, "-I", "bazel-out/k8-fastbuild/bin/external/envoy/source/exe/envoy_main_common_lib", seen_includes)
     inputs = depset(direct = inputs_direct, transitive = inputs_transitive)
     deps = depset(direct = deps_direct)
 
@@ -230,9 +229,11 @@ def _include_unique(opts, flag, include, seen):
     seen[include] = True
     opts.extend([flag, include])
 
+# dedupe_opts cleans up the linking arguments to pull out any duplications.
+# This greatly reduces the arg payload size to clang and cgo.
 def dedupe_opts(target):
     seen = {}
     for i, t in enumerate(target):
         seen[t] = i
-    dedupedCopts = list(sorted(seen.keys(), key = lambda x: seen[x]))
-    return dedupedCopts
+    deduped_copts = list(sorted(seen.keys(), key = lambda x: seen[x]))
+    return deduped_copts
