@@ -183,11 +183,11 @@ def cgo_configure(go, srcs, cdeps, cppopts, copts, cxxopts, clinkopts):
         deps = deps,
         runfiles = runfiles,
         cppopts = dedupe_opts(cppopts),
-        copts = dedupe_opts(copts),
-        cxxopts = dedupe_opts(cxxopts),
+        copts = copts,
+        cxxopts = cxxopts,
         objcopts = objcopts,
         objcxxopts = objcxxopts,
-        clinkopts = dedupe_opts(clinkopts),
+        clinkopts = clinkopts,
     )
 
 # return a list of libraries to link and the user modifiable flags.
@@ -234,5 +234,5 @@ def dedupe_opts(target):
     seen = {}
     for i, t in enumerate(target):
         seen[t] = i
-    dedupedCopts = list(sorted(seen.keys(), key=lambda x: seen[x]))
+    dedupedCopts = list(sorted(seen.keys(), key = lambda x: seen[x]))
     return dedupedCopts
