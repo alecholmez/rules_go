@@ -177,6 +177,7 @@ def cgo_configure(go, srcs, cdeps, cppopts, copts, cxxopts, clinkopts):
     # so that we actually link with -lstdc++ and others.
     clinkopts = lib_opts + clinkopts
 
+    print("Here are the opts: ", cppopts, copts, cxxopts, clinkopts)
     return struct(
         inputs = inputs,
         deps = deps,
