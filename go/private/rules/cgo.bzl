@@ -171,16 +171,17 @@ def cgo_configure(go, srcs, cdeps, cppopts, copts, cxxopts, clinkopts):
     # so that we actually link with -lstdc++ and others.
     clinkopts = lib_opts + clinkopts
 
+    print("Here are the opts: ", dedupe_opts(cppopts), dedupe_opts(copts), dedupe_opts(cxxopts), dedupe_opts(clinkopts))
     return struct(
         inputs = inputs,
         deps = deps,
         runfiles = runfiles,
-        cppopts = cppopts,
-        copts = copts,
-        cxxopts = cxxopts,
-        objcopts = objcopts,
-        objcxxopts = objcxxopts,
-        clinkopts = clinkopts,
+        cppopts = dedupe_opts(cppopts),
+        copts = dedupe_opts(copts),
+        cxxopts = dedupe_opts(cxxopts),
+        objcopts = dedupe_opts(objcopts),
+        objcxxopts = dedupe_opts(objcxxopts),
+        clinkopts = dedupe_opts(clinkopts),
     )
 
 def _cc_libs_and_flags(target):
@@ -206,3 +207,12 @@ def _include_unique(opts, flag, include, seen):
         return
     seen[include] = True
     opts.extend([flag, include])
+
+# dedupe_opts cleans up the linking arguments to pull out any duplications.
+# This greatly reduces the arg payload size to clang and cgo.
+def dedupe_opts(target):
+    seen = {}
+    for i, t in enumerate(target):
+        seen[t] = i
+    deduped_copts = list(sorted(seen.keys(), key = lambda x: seen[x]))
+    return deduped_copts
