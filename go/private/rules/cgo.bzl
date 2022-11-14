@@ -94,7 +94,6 @@ def cgo_configure(go, srcs, cdeps, cppopts, copts, cxxopts, clinkopts):
     # Always include the sandbox as part of the build. Bazel does this, but it
     # doesn't appear in the CompilationContext.
     _include_unique(cppopts, "-iquote", ".", seen_quote_includes)
-    previous_alwayslink = False
     for d in cdeps:
         runfiles = runfiles.merge(d.data_runfiles)
         if CcInfo in d:
@@ -150,9 +149,8 @@ def cgo_configure(go, srcs, cdeps, cppopts, copts, cxxopts, clinkopts):
                             # so it can be treated as a simple shared library too.
                             continue
                         else:
-                            lib_opts.extend(_whole_archive_args(go, lib.alwayslink, previous_alwayslink))
-                            lib_opts.append(lib_file.path)
-                            previous_alwayslink = lib.alwayslink
+                            lib_opts.extend(_library_args(go, lib_file, lib.alwayslink))
+                    lib_opts.append(lib_file.path)
             clinkopts.extend(cc_link_flags)
 
         elif hasattr(d, "objc"):
@@ -170,11 +168,6 @@ def cgo_configure(go, srcs, cdeps, cppopts, copts, cxxopts, clinkopts):
         else:
             fail("unknown library has neither cc nor objc providers: %s" % d.label)
 
-
-    if previous_alwayslink:
-        # if necessary, ad e.g. the final -no-whole-archive
-        lib_opts.extend(_whole_archive_args(go, False, previous_alwayslink))
-
     inputs = depset(direct = inputs_direct, transitive = inputs_transitive)
     deps = depset(direct = deps_direct)
 
@@ -184,7 +177,7 @@ def cgo_configure(go, srcs, cdeps, cppopts, copts, cxxopts, clinkopts):
     # so that we actually link with -lstdc++ and others.
     clinkopts = lib_opts + clinkopts
 
-    print("Here are the opts: ", cppopts, copts, cxxopts, clinkopts)
+    print("Here are the opts: ", dedupe_opts(cppopts), dedupe_opts(copts), dedupe_opts(cxxopts), dedupe_opts(clinkopts))
     return struct(
         inputs = inputs,
         deps = deps,
@@ -192,8 +185,8 @@ def cgo_configure(go, srcs, cdeps, cppopts, copts, cxxopts, clinkopts):
         cppopts = dedupe_opts(cppopts),
         copts = dedupe_opts(copts),
         cxxopts = dedupe_opts(cxxopts),
-        objcopts = objcopts,
-        objcxxopts = objcxxopts,
+        objcopts = dedupe_opts(objcopts),
+        objcxxopts = dedupe_opts(objcxxopts),
         clinkopts = dedupe_opts(clinkopts),
     )
 
@@ -208,7 +201,7 @@ def _cc_libs_and_flags(target):
 
     return lib_files, flags
 
-# Returns the library File to link for the given LibraryToLink.
+# determine what kind of library we have to link
 def _cc_lib_file(library_to_link):
     if library_to_link.static_library != None:
         return library_to_link.static_library
@@ -220,30 +213,16 @@ def _cc_lib_file(library_to_link):
         return library_to_link.dynamic_library
     return None
 
-# Returns any arguments necessary for linking the next library.
-#
-# Some linkers have a pair of flags where the first flag indicates that *all*
-# following libraries are to be linked in their entirety, and the second flag
-# turns that behavior back off.
-# By knowing if the next library is to be linked in its entirety, and whether
-# the same was true of the last library, we can leverage this pair of flags
-# and minimize the number of args needed during linking.
-def _whole_archive_args(go, alwayslink, previous_alwayslink):
-    if go.mode.goos == "darwin":
-        if alwayslink:
-            # -force_load only works for the immediately following library,
-            # so it must be specified for *every* library that has alwayslink.
-            # There is no analog to the pair of -whole-archive and
-            # -no-whole-archive.
-            return ["-Wl,-force_load"]
-        else:
-            return []
-    elif alwayslink and not previous_alwayslink:
-        return ["-Wl,-whole-archive"]
-    elif previous_alwayslink and not alwayslink:
-        return ["-Wl,-no-whole-archive"]
+# Returns the linker flags to link the given static library File.
+def _library_args(go, lib_file, alwayslink):
+    if not alwayslink:
+        return [lib_file.path]
+
+    cc_basename = go.cgo_tools.c_compiler_path.rpartition("/")[-1]
+    if cc_basename == "clang":
+        return ["-Wl,-force_load", lib_file.path]
     else:
-        return []
+        return ["-Wl,--whole-archive", lib_file.path, "-Wl,--no-whole-archive"]
 
 def _include_unique(opts, flag, include, seen):
     if include in seen:
