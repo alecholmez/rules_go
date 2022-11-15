@@ -177,16 +177,16 @@ def cgo_configure(go, srcs, cdeps, cppopts, copts, cxxopts, clinkopts):
     # so that we actually link with -lstdc++ and others.
     clinkopts = lib_opts + clinkopts
 
-    print("Here are the opts: ", dedupe_opts(cppopts), dedupe_opts(copts), dedupe_opts(cxxopts), dedupe_opts(clinkopts))
+    print("Here are the opts: ", cppopts, copts, cxxopts, dedupe_opts(clinkopts)))
     return struct(
         inputs = inputs,
         deps = deps,
         runfiles = runfiles,
-        cppopts = dedupe_opts(cppopts),
-        copts = dedupe_opts(copts),
-        cxxopts = dedupe_opts(cxxopts),
-        objcopts = dedupe_opts(objcopts),
-        objcxxopts = dedupe_opts(objcxxopts),
+        cppopts = cppopts,
+        copts = copts,
+        cxxopts = cxxopts,
+        objcopts = objcopts,
+        objcxxopts = objcxxopts,
         clinkopts = dedupe_opts(clinkopts),
     )
 
@@ -220,7 +220,10 @@ def _library_args(go, lib_file, alwayslink):
 
     cc_basename = go.cgo_tools.c_compiler_path.rpartition("/")[-1]
     if cc_basename == "clang":
-        return ["-Wl,-force_load", lib_file.path]
+        # NOTE(alec): force load causes problems with clang 14 and lld.
+        # I think this is only a mac os problem?
+        # return ["-Wl,-force_load", lib_file.path]
+        return ["-Wl", lib_file.path]
     else:
         return ["-Wl,--whole-archive", lib_file.path, "-Wl,--no-whole-archive"]
 
